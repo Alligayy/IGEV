@@ -1,0 +1,98 @@
+# ==========================================
+# 1. 模型权重与导出文件 (Model Weights & Exports)
+# ==========================================
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+*.engine
+*.trt
+*.bin
+*.h5
+*.pb
+weights/
+checkpoints/
+pretrained/
+models_saved/
+
+# ==========================================
+# 2. 视觉数据集与大体积中间数据 (Datasets & Large Media)
+# ==========================================
+data/
+datasets/
+dataset/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.hdf5
+*.lmdb
+*.tfrecord
+# 视差图、深度图、点云、ROS包及大体积矩阵
+*.pfm
+*.npy
+*.npz
+*.pcd
+*.ply
+*.bag
+# 视频文件 (避免误传测试视频)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+
+# ==========================================
+# 3. 训练日志与推理输出 (Logs & Inference Outputs)
+# ==========================================
+logs/
+runs/
+wandb/
+mlruns/
+tensorboard/
+events.out.tfevents*
+outputs/
+results/
+vis_results/
+
+# ==========================================
+# 4. 敏感配置与密钥 (Secrets & Local Configs)
+# ==========================================
+.env
+.env.*
+*.pem
+*.key
+*secret*
+*credential*
+config_local.py
+config_local.yaml
+local_settings.py
+
+# ==========================================
+# 5. Python 编译与环境缓存 (Python & C++/CUDA Extensions)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.dylib
+*.dll
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ==========================================
+# 6. 编辑器与系统残留文件 (IDE & OS)
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

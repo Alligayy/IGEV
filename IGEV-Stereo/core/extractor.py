@@ -7,6 +7,7 @@ import timm
 
 
 
+# 上下文编码器的基本残差单元。步长或通道数变化时用 1×1 卷积对齐捷径分支。
 class ResidualBlock(nn.Module):
     def __init__(self, in_planes, planes, norm_fn='group', stride=1):
         super(ResidualBlock, self).__init__()
@@ -197,6 +198,7 @@ class BasicEncoder(nn.Module):
 
         return x
 
+# 为各尺度 GRU 提供隐藏状态和门控上下文，输入是归一化后的左图。
 class MultiBasicEncoder(nn.Module):
     def __init__(self, output_dim=[128], norm_fn='batch', dropout=0.0, downsample=3):
         super(MultiBasicEncoder, self).__init__()
@@ -218,6 +220,7 @@ class MultiBasicEncoder(nn.Module):
         elif self.norm_fn == 'none':
             self.norm1 = nn.Sequential()
 
+        # downsample 控制首层卷积到 layer3 的累计下采样，默认 2 使 layer3 输出为原图的 1/4。
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=1 + (downsample > 2), padding=3)
         self.relu1 = nn.ReLU(inplace=True)
 
@@ -228,6 +231,8 @@ class MultiBasicEncoder(nn.Module):
         self.layer4 = self._make_layer(128, stride=2)
         self.layer5 = self._make_layer(128, stride=2)
 
+        # IGEVStereo 为每个尺度建立两个输出头，分别生成隐状态和上下文特征。
+        # 每组通道配置 dim 按粗到细存放，因此最细尺度使用 dim[2]。
         output_list = []
         
         for dim in output_dim:
@@ -288,6 +293,7 @@ class MultiBasicEncoder(nn.Module):
             v = x
             x = x[:(x.shape[0]//2)]
 
+        # 返回值按细到粗排列，只计算 num_layers 所需的尺度。
         outputs04 = [f(x) for f in self.outputs04]
         if num_layers == 1:
             return (outputs04, v) if dual_inp else (outputs04,)
@@ -324,10 +330,12 @@ class SubModule(nn.Module):
                 m.bias.data.zero_()
 
 
+# 双目匹配分支的特征提取器。左右图分别调用同一个实例，共享骨干和解码器权重。
 class Feature(SubModule):
     def __init__(self):
         super(Feature, self).__init__()
         pretrained =  True
+        # 取预训练 MobileNetV2 的卷积骨干，再构建多尺度解码路径。
         model = timm.create_model('mobilenetv2_100', pretrained=pretrained, features_only=True)
         layers = [1,2,3,5,6]
         chans = [16, 24, 32, 96, 160]
@@ -347,6 +355,7 @@ class Feature(SubModule):
         self.conv4 = BasicConv_IN(chans[1]*2, chans[1]*2, kernel_size=3, stride=1, padding=1)
 
     def forward(self, x):
+        # 编码端从 1/2 到 1/32 逐级扩大感受野，保留各尺度特征供跳跃连接使用。
         x = self.act1(self.bn1(self.conv_stem(x)))
         x2 = self.block0(x)
         x4 = self.block1(x2)
@@ -354,9 +363,11 @@ class Feature(SubModule):
         x16 = self.block3(x8)
         x32 = self.block4(x16)
 
+        # 解码端逐级将粗层上采样，与同尺度的编码特征拼接，融合局部细节和大范围上下文。
         x16 = self.deconv32_16(x32, x16)
         x8 = self.deconv16_8(x16, x8)
         x4 = self.deconv8_4(x8, x4)
         x4 = self.conv4(x4)
+        # 按 1/4、1/8、1/16、1/32 返回，通道数依次为 48、64、192、160。
         return [x4, x8, x16, x32]
 

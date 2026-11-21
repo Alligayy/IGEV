@@ -58,8 +58,10 @@ def forward_interpolate(flow):
 
 def bilinear_sampler(img, coords, mode='bilinear', mask=False):
     """ Wrapper for grid_sample, uses pixel coordinates """
+    # 几何查询将每个左图像素的候选序列表示为高度为 1 的特征图，纵坐标固定为 0。
     H, W = img.shape[-2:]
     xgrid, ygrid = coords.split([1,1], dim=-1)
+    # align_corners=True 时，横坐标的首尾像素对应 -1 和 1。连续坐标沿候选轴线性插值。
     xgrid = 2*xgrid/(W-1) - 1
     assert torch.unique(ygrid).numel() == 1 and H == 1 # This is a stereo problem
     grid = torch.cat([xgrid, ygrid], dim=-1)
